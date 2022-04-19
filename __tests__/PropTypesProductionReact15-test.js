@@ -104,6 +104,9 @@ describe('PropTypesProductionReact15', () => {
 
     it('should not warn for valid values', () => {
       expectNoop(PropTypes.array, []);
+      if (typeof BigInt === 'function') {
+        expectNoop(PropTypes.bigint, BigInt(0));
+      }
       expectNoop(PropTypes.bool, false);
       expectNoop(PropTypes.func, function() {});
       expectNoop(PropTypes.number, 0);
@@ -124,6 +127,7 @@ describe('PropTypesProductionReact15', () => {
       expectNoop(PropTypes.array.isRequired);
       expectNoop(PropTypes.symbol.isRequired);
       expectNoop(PropTypes.number.isRequired);
+      expectNoop(PropTypes.bigint.isRequired);
       expectNoop(PropTypes.bool.isRequired);
       expectNoop(PropTypes.func.isRequired);
       expectNoop(PropTypes.shape({}).isRequired);
@@ -137,6 +141,15 @@ describe('PropTypesProductionReact15', () => {
       expectNoop(PropTypes.array.isRequired, []);
       expectNoop(PropTypes.array.isRequired, null);
       expectNoop(PropTypes.array.isRequired, undefined);
+      expectNoop(PropTypes.bigint, function() {});
+      expectNoop(PropTypes.bigint, 42);
+      if (typeof BigInt === 'function') {
+        expectNoop(PropTypes.bigint, BigInt(42));
+      }
+      expectNoop(PropTypes.bigint.isRequired, function() {});
+      expectNoop(PropTypes.bigint.isRequired, 42);
+      expectNoop(PropTypes.bigint.isRequired, null);
+      expectNoop(PropTypes.bigint.isRequired, undefined);
       expectNoop(PropTypes.bool, []);
       expectNoop(PropTypes.bool, true);
       expectNoop(PropTypes.bool.isRequired, []);
@@ -212,6 +225,9 @@ describe('PropTypesProductionReact15', () => {
 
     it('should support the arrayOf propTypes', () => {
       expectNoop(PropTypes.arrayOf(PropTypes.number), [1, 2, 3]);
+      if (typeof BigInt === 'function') {
+        expectNoop(PropTypes.arrayOf(PropTypes.bigint), [BigInt(1), BigInt(2), BigInt(3)]);
+      }
       expectNoop(PropTypes.arrayOf(PropTypes.string), ['a', 'b', 'c']);
       expectNoop(PropTypes.arrayOf(PropTypes.oneOf(['a', 'b'])), ['a', 'b']);
       expectNoop(PropTypes.arrayOf(PropTypes.symbol), [Symbol(), Symbol()]);
@@ -315,7 +331,6 @@ describe('PropTypesProductionReact15', () => {
   });
 
   describe('Component Type', () => {
-
     it('should support components', () => {
       expectNoop(PropTypes.element, <div />);
     });
@@ -333,6 +348,14 @@ describe('PropTypesProductionReact15', () => {
         'Invalid prop `testProp` of type `number` supplied to `testComponent`, ' +
           'expected a single ReactElement.',
       );
+      if (typeof BigInt === 'function') {
+        expectNoop(
+          PropTypes.element,
+          BigInt(123),
+          'Invalid prop `testProp` of type `bigint` supplied to `testComponent`, ' +
+            'expected a single ReactElement.',
+        );
+      }
       expectNoop(
         PropTypes.element,
         'foo',
@@ -997,6 +1020,119 @@ describe('PropTypesProductionReact15', () => {
         undefined,
       );
       expectNoop(PropTypes.element, <div />);
+    });
+  });
+
+  describe('Exact Types', () => {
+    it('should warn for non objects', () => {
+      expectNoop(
+        PropTypes.exact({}),
+        'some string'
+      );
+      expectNoop(
+        PropTypes.exact({}),
+        ['array']
+      );
+    });
+
+    it('should not warn for empty values', () => {
+      expectNoop(PropTypes.exact({}), undefined);
+      expectNoop(PropTypes.exact({}), null);
+      expectNoop(PropTypes.exact({}), {});
+    });
+
+    it('should not warn for an empty object', () => {
+      expectNoop(PropTypes.exact({}).isRequired, {});
+    });
+
+    it('expectNoop warn for non specified types', () => {
+      expectNoop(
+        PropTypes.exact({}),
+        {key: 1}
+      );
+    });
+
+    it('should not warn for valid types', () => {
+      expectNoop(PropTypes.exact({key: PropTypes.number}), {key: 1});
+    });
+
+    it('should warn for required valid types', () => {
+      expectNoop(
+        PropTypes.exact({key: PropTypes.number.isRequired}),
+        {}
+      );
+    });
+
+    it('should warn for the first required type', () => {
+      expectNoop(
+        PropTypes.exact({
+          key: PropTypes.number.isRequired,
+          secondKey: PropTypes.number.isRequired,
+        }),
+        {}
+      );
+    });
+
+    it('should warn for invalid key types', () => {
+      expectNoop(
+        PropTypes.exact({key: PropTypes.number}),
+        {key: 'abc'}
+      );
+    });
+
+    it('should be implicitly optional and not warn without values', () => {
+      expectNoop(
+        PropTypes.exact(PropTypes.exact({key: PropTypes.number})),
+        null,
+      );
+      expectNoop(
+        PropTypes.exact(PropTypes.exact({key: PropTypes.number})),
+        undefined,
+      );
+    });
+
+    it('should warn for missing required values', () => {
+      expectNoop(
+        PropTypes.exact({key: PropTypes.number}).isRequired,
+      );
+    });
+
+    it('should warn if called manually in development', () => {
+      expectNoop(PropTypes.exact({}), 'some string');
+      expectNoop(PropTypes.exact({foo: PropTypes.number}), {
+        foo: 42,
+      });
+      expectNoop(
+        PropTypes.exact({key: PropTypes.number}).isRequired,
+        null,
+      );
+      expectNoop(
+        PropTypes.exact({key: PropTypes.number}).isRequired,
+        undefined,
+      );
+      expectNoop(PropTypes.element, <div />);
+    });
+
+    it('works with oneOfType', () => {
+      expectNoop(
+        PropTypes.exact({ foo: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }),
+        { foo: 42 }
+      );
+      expectNoop(
+        PropTypes.exact({ foo: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }),
+        { foo: '42' }
+      );
+      expectNoop(
+        PropTypes.exact({ foo: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }),
+        { foo: 42, bar: 'what is 6 * 7' }
+      );
+    });
+
+    it('works with a custom propType', () => {
+      expectNoop(
+        PropTypes.oneOfType([() => new Error('hi')]),
+        {}
+      )
     });
   });
 

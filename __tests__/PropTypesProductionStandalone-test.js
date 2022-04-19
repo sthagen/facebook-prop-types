@@ -9,7 +9,7 @@
 
 'use strict';
 
-describe('PropTypesProductionStandalone', function() {
+describe('PropTypesProductionStandalone', () => {
   let React;
   let PropTypes;
 
@@ -21,11 +21,11 @@ describe('PropTypesProductionStandalone', function() {
     PropTypes = require('../index');
   }
 
-  beforeEach(function() {
+  beforeEach(() => {
     resetWarningCache();
   });
 
-  afterEach(function() {
+  afterEach(() => {
     delete process.env.NODE_ENV;
   });
 
@@ -70,12 +70,21 @@ describe('PropTypesProductionStandalone', function() {
     expect(message).toBe(null);
   }
 
-  describe('Primitive Types', function() {
-    it('should be a no-op', function() {
+  describe('Primitive Types', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.array, /please/);
       expectThrowsInProduction(PropTypes.array.isRequired, /please/);
       expectThrowsInProduction(PropTypes.array.isRequired, null);
       expectThrowsInProduction(PropTypes.array.isRequired, undefined);
+      expectThrowsInProduction(PropTypes.bigint, function() {});
+      expectThrowsInProduction(PropTypes.bigint, 42);
+      if (typeof BigInt === 'function') {
+        expectThrowsInProduction(PropTypes.bigint, BigInt(42));
+      }
+      expectThrowsInProduction(PropTypes.bigint.isRequired, function() {});
+      expectThrowsInProduction(PropTypes.bigint.isRequired, 42);
+      expectThrowsInProduction(PropTypes.bigint.isRequired, null);
+      expectThrowsInProduction(PropTypes.bigint.isRequired, undefined);
       expectThrowsInProduction(PropTypes.bool, []);
       expectThrowsInProduction(PropTypes.bool.isRequired, []);
       expectThrowsInProduction(PropTypes.bool.isRequired, null);
@@ -103,16 +112,16 @@ describe('PropTypesProductionStandalone', function() {
     });
   });
 
-  describe('Any Type', function() {
-    it('should be a no-op', function() {
+  describe('Any Type', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.any, null);
       expectThrowsInProduction(PropTypes.any.isRequired, null);
       expectThrowsInProduction(PropTypes.any.isRequired, undefined);
     });
   });
 
-  describe('ArrayOf Type', function() {
-    it('should be a no-op', function() {
+  describe('ArrayOf Type', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.arrayOf({foo: PropTypes.string}), {
         foo: 'bar',
       });
@@ -136,10 +145,13 @@ describe('PropTypesProductionStandalone', function() {
     });
   });
 
-  describe('Component Type', function() {
-    it('should be a no-op', function() {
+  describe('Component Type', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.element, [<div />, <div />]);
       expectThrowsInProduction(PropTypes.element, 123);
+      if (typeof BigInt === 'function') {
+        expectThrowsInProduction(PropTypes.element, BigInt(123));
+      }
       expectThrowsInProduction(PropTypes.element, 'foo');
       expectThrowsInProduction(PropTypes.element, false);
       expectThrowsInProduction(PropTypes.element.isRequired, null);
@@ -147,30 +159,30 @@ describe('PropTypesProductionStandalone', function() {
     });
   });
 
-  describe('Instance Types', function() {
-    it('should be a no-op', function() {
+  describe('Instance Types', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.instanceOf(Date), {});
       expectThrowsInProduction(PropTypes.instanceOf(Date).isRequired, {});
     });
   });
 
-  describe('React Component Types', function() {
-    it('should be a no-op', function() {
+  describe('React Component Types', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.node, {});
       expectThrowsInProduction(PropTypes.node.isRequired, null);
       expectThrowsInProduction(PropTypes.node.isRequired, undefined);
     });
   });
 
-  describe('React ElementType Type', function() {
-    it('should be a no-op', function() {
+  describe('React ElementType Type', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.elementType.isRequired, false);
       expectThrowsInProduction(PropTypes.elementType.isRequired, {});
     });
   });
 
-  describe('ObjectOf Type', function() {
-    it('should be a no-op', function() {
+  describe('ObjectOf Type', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.objectOf({foo: PropTypes.string}), {
         foo: 'bar',
       });
@@ -185,8 +197,8 @@ describe('PropTypesProductionStandalone', function() {
     });
   });
 
-  describe('OneOf Types', function() {
-    it('should be a no-op', function() {
+  describe('OneOf Types', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.oneOf('red', 'blue'), 'red');
       expectThrowsInProduction(PropTypes.oneOf(['red', 'blue']), true);
       expectThrowsInProduction(PropTypes.oneOf(['red', 'blue']), null);
@@ -194,8 +206,8 @@ describe('PropTypesProductionStandalone', function() {
     });
   });
 
-  describe('Union Types', function() {
-    it('should be a no-op', function() {
+  describe('Union Types', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(
         PropTypes.oneOfType(PropTypes.string, PropTypes.number),
         'red',
@@ -215,8 +227,8 @@ describe('PropTypesProductionStandalone', function() {
     });
   });
 
-  describe('Shape Types', function() {
-    it('should be a no-op', function() {
+  describe('Shape Types', () => {
+    it('should be a no-op', () => {
       expectThrowsInProduction(PropTypes.shape({}), 'some string');
       expectThrowsInProduction(
         PropTypes.shape({key: PropTypes.number}).isRequired,
@@ -229,8 +241,156 @@ describe('PropTypesProductionStandalone', function() {
     });
   });
 
-  describe('checkPropTypes', function() {
-    it('does not call validators', function() {
+  describe('Exact Types', () => {
+    it('should warn for non objects', () => {
+      spyOn(console, 'error');
+      expectThrowsInProduction(
+        PropTypes.exact({}),
+        'some string'
+      );
+      expectThrowsInProduction(
+        PropTypes.exact({}),
+        ['array']
+      );
+    });
+
+    it('should not warn for empty values', () => {
+      typeCheckPass(PropTypes.exact({}), undefined);
+      typeCheckPass(PropTypes.exact({}), null);
+      typeCheckPass(PropTypes.exact({}), {});
+    });
+
+    it('should not warn for an empty object', () => {
+      typeCheckPass(PropTypes.exact({}).isRequired, {});
+    });
+
+    it('should warn for non specified types', () => {
+      expectThrowsInProduction(
+        PropTypes.exact({}),
+        {key: 1},
+        'Warning: Failed prop type: Invalid prop `testProp` key `key` supplied to `testComponent`.' +
+        '\nBad object: {' +
+        '\n  \"key\": 1' +
+        '\n}' +
+        '\nValid keys: []'
+      );
+    });
+
+    it('should not warn for valid types', () => {
+      typeCheckPass(PropTypes.exact({key: PropTypes.number}), {key: 1});
+    });
+
+    it('should warn for required valid types', () => {
+      expectThrowsInProduction(
+        PropTypes.exact({key: PropTypes.number.isRequired}),
+        {},
+        'The prop `testProp.key` is marked as required in `testComponent`, ' +
+          'but its value is `undefined`.',
+      );
+    });
+
+    it('should warn for the first required type', () => {
+      expectThrowsInProduction(
+        PropTypes.exact({
+          key: PropTypes.number.isRequired,
+          secondKey: PropTypes.number.isRequired,
+        }),
+        {},
+        'The prop `testProp.key` is marked as required in `testComponent`, ' +
+          'but its value is `undefined`.',
+      );
+    });
+
+    it('should warn for invalid key types', () => {
+      expectThrowsInProduction(
+        PropTypes.exact({key: PropTypes.number}),
+        {key: 'abc'},
+        'Invalid prop `testProp.key` of type `string` supplied to `testComponent`, ' +
+          'expected `number`.',
+      );
+    });
+
+    it('should be implicitly optional and not warn without values', () => {
+      typeCheckPass(
+        PropTypes.exact(PropTypes.exact({key: PropTypes.number})),
+        null,
+      );
+      typeCheckPass(
+        PropTypes.exact(PropTypes.exact({key: PropTypes.number})),
+        undefined,
+      );
+    });
+
+    it('should warn for missing required values', () => {
+      expectThrowsInProduction(
+        PropTypes.exact({key: PropTypes.number}).isRequired,
+      );
+    });
+
+    it('works with oneOfType', () => {
+      typeCheckPass(
+        PropTypes.exact({ foo: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }),
+        { foo: 42 }
+      );
+      typeCheckPass(
+        PropTypes.exact({ foo: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }),
+        { foo: '42' }
+      );
+      expectThrowsInProduction(
+        PropTypes.exact({ foo: PropTypes.oneOfType([PropTypes.number, PropTypes.string]) }),
+        { foo: 42, bar: 'what is 6 * 7' },
+        `Warning: Failed prop type: Invalid prop \`testProp\` key \`bar\` supplied to \`testComponent\`.
+Bad object: {
+  "foo": 42,
+  "bar": "what is 6 * 7"
+}
+Valid keys: [
+  "foo"
+]`
+      );
+    });
+
+    it('works with a custom propType', () => {
+      expectThrowsInProduction(
+        PropTypes.oneOfType([() => new Error('hi')]),
+        {},
+        'Warning: Failed prop type: Invalid prop `testProp` supplied to `testComponent`.'
+      )
+    });
+  });
+
+  describe('Symbol Type', () => {
+    it('should warn for non-symbol', () => {
+      expectThrowsInProduction(
+        PropTypes.symbol,
+        'hello',
+        'Invalid prop `testProp` of type `string` supplied to ' +
+          '`testComponent`, expected `symbol`.',
+      );
+      expectThrowsInProduction(
+        PropTypes.symbol,
+        function() {},
+        'Invalid prop `testProp` of type `function` supplied to ' +
+          '`testComponent`, expected `symbol`.',
+      );
+      expectThrowsInProduction(
+        PropTypes.symbol,
+        {
+          '@@toStringTag': 'Katana',
+        },
+        'Invalid prop `testProp` of type `object` supplied to ' +
+          '`testComponent`, expected `symbol`.',
+      );
+    });
+
+    it('should not warn for a polyfilled Symbol', () => {
+      const CoreSymbol = require('core-js/library/es6/symbol');
+      typeCheckPass(PropTypes.symbol, CoreSymbol('core-js'));
+    });
+  });
+
+  describe('checkPropTypes', () => {
+    it('does not call validators', () => {
       spyOn(console, 'error');
 
       const spy = jest.fn();
